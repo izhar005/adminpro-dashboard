@@ -4,6 +4,7 @@ import type React from "react"
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/AuthContext"
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -15,7 +16,9 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
-      router.push("/login")
+      // `replace` not `push` — otherwise the back button returns the user to
+      // the protected page they were just bounced from.
+      router.replace("/login")
     }
   }, [isAuthenticated, isLoading, router])
 
@@ -24,7 +27,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+          <LoadingSpinner />
           <p className="text-sm text-muted-foreground">Loading...</p>
         </div>
       </div>

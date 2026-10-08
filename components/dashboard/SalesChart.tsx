@@ -3,6 +3,7 @@
 import { Card } from "@/components/ui/card"
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from "recharts"
 import { salesByCategory } from "@/lib/data"
+import { chartColors, tooltipProps } from "@/lib/chart-theme"
 
 export function SalesChart() {
   return (
@@ -21,18 +22,17 @@ export function SalesChart() {
             outerRadius={100}
             paddingAngle={5}
             dataKey="value"
+            nameKey="name"
           >
             {salesByCategory.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
+              // Colors come from the theme tokens rather than a hardcoded hex on
+              // the data, so the slices follow light/dark mode.
+              <Cell key={`cell-${entry.name}`} fill={chartColors[index % chartColors.length]} />
             ))}
           </Pie>
           <Tooltip
-            contentStyle={{
-              backgroundColor: "oklch(var(--card))",
-              border: "1px solid oklch(var(--border))",
-              borderRadius: "0.75rem",
-              padding: "8px 12px",
-            }}
+            {...tooltipProps}
+            formatter={(value, name) => [`${Number(value ?? 0)}%`, String(name)]}
           />
           <Legend
             verticalAlign="bottom"

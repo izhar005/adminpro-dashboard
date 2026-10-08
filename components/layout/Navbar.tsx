@@ -6,6 +6,9 @@ import { useTheme } from "@/contexts/ThemeContext"
 import { useApp } from "@/contexts/AppContext"
 import { useAuth } from "@/contexts/AuthContext"
 import { cn } from "@/lib/utils"
+import { formatDateTime, relativeTime } from "@/lib/relative-time"
+import { useHasMounted } from "@/lib/use-has-mounted"
+import { SIDEBAR_OFFSET_CLASS } from "@/lib/sidebar-layout"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -25,10 +28,15 @@ interface NavbarProps {
 
 export function Navbar({ onMenuClick }: NavbarProps) {
   const { theme, toggleTheme } = useTheme()
-  const { notifications, markNotificationRead, settings } = useApp()
+  const { notifications, markNotificationRead, markAllNotificationsRead, settings } =
+    useApp()
   const { user, logout } = useAuth()
   const [searchFocused, setSearchFocused] = useState(false)
   const [notificationOpen, setNotificationOpen] = useState(false)
+
+  // The bell's relative labels read the wall clock, so they can only be computed
+  // once the client has hydrated. See the note in `lib/relative-time.ts`.
+  const hasMounted = useHasMounted()
 
   const unreadCount = notifications.filter((n) => !n.read).length
   const isCollapsed = settings.sidebarCollapsed
@@ -43,27 +51,35 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   return (
     <header
       className={cn(
-        "fixed top-0 right-0 z-30 h-16 bg-card/80 backdrop-blur-xl border-b border-border transition-all duration-300",
-        "left-0 md:left-64",
-        isCollapsed && "md:left-16",
+        "fixed top-0 right-0 z-30 h-16 bg-card/80 backdrop-blur-xl border-b border-border",
+        // Offsets come from the shared sidebar geometry so the header can never
+        // slide under the rail or leave a gap.
+        "left-0 transition-[left] duration-300 ease-in-out",
+        isCollapsed ? SIDEBAR_OFFSET_CLASS.collapsed : SIDEBAR_OFFSET_CLASS.expanded,
       )}
     >
-      <div className="flex h-full items-center justify-between px-4 md:px-6 gap-4">
+      {/* `min-w-0` on the search wrapper is what stops the placeholder from being
+          clipped: as a flex child it will otherwise refuse to shrink below its
+          content width when the sidebar toggles.
+
+          `sm:px-6` rather than `md:` so the padding steps up on tablets too. */}
+      <div className="flex h-full items-center gap-4 px-4 sm:px-6">
         <button
           onClick={onMenuClick}
-          className="md:hidden flex h-10 w-10 items-center justify-center rounded-xl hover:bg-accent transition-colors"
+          className="md:hidden flex h-10 w-10 shrink-0 items-center justify-center rounded-xl hover:bg-accent transition-colors"
           aria-label="Open menu"
         >
           <Menu className="h-6 w-6" />
         </button>
 
         {/* Search Bar */}
-        <div className="flex-1 max-w-xl">
-          <div className={cn("relative transition-all duration-200", searchFocused && "scale-[1.02]")}>
+        <div className="flex min-w-0 flex-1 md:max-w-xl">
+          <div className={cn("relative w-full transition-all duration-200", searchFocused && "scale-[1.02]")}>
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               type="text"
               placeholder="Search..."
+              aria-label="Search"
               className="w-full pl-10 pr-4 h-10 bg-accent/50 border-0 rounded-xl focus-visible:ring-2 focus-visible:ring-primary transition-all"
               onFocus={() => setSearchFocused(true)}
               onBlur={() => setSearchFocused(false)}
@@ -71,8 +87,19 @@ export function Navbar({ onMenuClick }: NavbarProps) {
           </div>
         </div>
 
-        {/* Right Section */}
-        <div className="flex items-center gap-2 md:gap-3">
+        {/* `ml-auto` is load-bearing, and it is not a stylistic choice.
+
+            The search wrapper below is `flex-1 md:max-w-xl`, and those two
+            properties fight each other: `flex-grow` hands the search every spare
+            pixel on the row until `max-w-xl` stops it at 576px. Whatever space is
+            left over after that is never claimed by anyone, and a flex row with
+            the default `justify-content: flex-start` parks the remainder to the
+            right of the *last* item — which pushed this whole group 300px away
+            from the right edge on a 1440px screen.
+
+            `ml-auto` claims that leftover instead, so the slack lands between the
+            search and this group, where it belongs. */}
+        <div className="ml-auto flex shrink-0 items-center gap-3 sm:gap-4">
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
@@ -111,6 +138,12 @@ export function Navbar({ onMenuClick }: NavbarProps) {
                 )}
               </div>
               <div className="max-h-[400px] overflow-y-auto">
+                {notifications.length === 0 && (
+                  <p className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    You&apos;re all caught up.
+                  </p>
+                )}
+
                 {notifications.slice(0, 5).map((notification) => (
                   <button
                     key={notification.id}
@@ -132,19 +165,36 @@ export function Navbar({ onMenuClick }: NavbarProps) {
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium leading-tight">{notification.title}</p>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{notification.message}</p>
-                        <p className="text-xs text-muted-foreground mt-1">{notification.time}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {hasMounted
+                            ? relativeTime(notification.createdAt)
+                            : formatDateTime(notification.createdAt)}
+                        </p>
                       </div>
                     </div>
                   </button>
                 ))}
               </div>
-              <div className="border-t border-border p-2">
+              <div className="flex items-center gap-2 border-t border-border p-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    markAllNotificationsRead()
+                    setNotificationOpen(false)
+                  }}
+                  disabled={unreadCount === 0}
+                  className="flex h-9 flex-1 items-center justify-center rounded-lg text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                >
+                  {unreadCount === 0 ? "All caught up" : "Mark all as read"}
+                </button>
+                {/* The dropdown still previews 5; the full history lives on its
+                    own page. Without this the user has no way past the cap. */}
                 <Link
                   href="/notifications"
-                  className="flex h-9 items-center justify-center rounded-lg text-sm font-medium hover:bg-accent transition-colors"
                   onClick={() => setNotificationOpen(false)}
+                  className="flex h-9 flex-1 items-center justify-center rounded-lg bg-primary text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                 >
-                  View all notifications
+                  View all
                 </Link>
               </div>
             </DropdownMenuContent>

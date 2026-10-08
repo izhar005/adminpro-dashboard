@@ -3,6 +3,7 @@
 import { Card } from "@/components/ui/card"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { trafficData } from "@/lib/data"
+import { chartColors, tooltipProps, axisTickStyle } from "@/lib/chart-theme"
 
 export function TrafficChart() {
   return (
@@ -13,19 +14,25 @@ export function TrafficChart() {
       </div>
       <ResponsiveContainer width="100%" height={300}>
         <BarChart data={trafficData}>
-          <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-          <XAxis dataKey="time" tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
-          <YAxis tick={{ fontSize: 12 }} tickLine={false} axisLine={false} />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: "oklch(var(--card))",
-              border: "1px solid oklch(var(--border))",
-              borderRadius: "0.75rem",
-              padding: "8px 12px",
-            }}
-            cursor={{ fill: "oklch(var(--accent))" }}
+          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.6} />
+          <XAxis
+            dataKey="time"
+            tick={axisTickStyle}
+            tickLine={false}
+            axisLine={false}
+            stroke="hsl(var(--border))"
           />
-          <Bar dataKey="visitors" fill="oklch(0.73 0.12 199)" radius={[8, 8, 0, 0]} />
+          <YAxis
+            tick={axisTickStyle}
+            tickLine={false}
+            axisLine={false}
+            stroke="hsl(var(--border))"
+          />
+          <Tooltip
+            {...tooltipProps}
+            cursor={{ fill: "hsl(var(--accent))", opacity: 0.5 }}
+          />
+          <Bar dataKey="visitors" fill={chartColors[0]} radius={[8, 8, 0, 0]} name="Visitors" />
         </BarChart>
       </ResponsiveContainer>
     </Card>

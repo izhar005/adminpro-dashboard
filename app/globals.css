@@ -4,6 +4,12 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Height-based variant, used by the auth pages to compact their vertical rhythm
+   on short viewports. A laptop with the browser chrome open has ~640px of
+   usable height, and no width breakpoint can tell that apart from a phone in
+   landscape — the difference is only visible when measured vertically. */
+@custom-variant short-height (@media (max-height: 720px));
+
 @theme {
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);

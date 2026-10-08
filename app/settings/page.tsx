@@ -6,10 +6,9 @@ import { Card } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
 import { useApp } from "@/contexts/AppContext"
 import { useTheme } from "@/contexts/ThemeContext"
-import { Moon, Sun, Monitor, Bell, Save } from "lucide-react"
+import { Moon, Sun, Monitor, Bell } from "lucide-react"
 
 export default function SettingsPage() {
   const { settings, updateSettings } = useApp()
@@ -111,7 +110,13 @@ export default function SettingsPage() {
                   </Label>
                   <p className="text-sm text-muted-foreground mt-1">Get notified when new orders are placed</p>
                 </div>
-                <Switch id="orderNotif" defaultChecked />
+                <Switch
+                  id="orderNotif"
+                  checked={settings.orderNotifications}
+                  onCheckedChange={(checked) =>
+                    updateSettings({ orderNotifications: checked })
+                  }
+                />
               </div>
               <div className="flex items-center justify-between">
                 <div>
@@ -120,7 +125,13 @@ export default function SettingsPage() {
                   </Label>
                   <p className="text-sm text-muted-foreground mt-1">Get notified about new user registrations</p>
                 </div>
-                <Switch id="userNotif" defaultChecked />
+                <Switch
+                  id="userNotif"
+                  checked={settings.userActivityNotifications}
+                  onCheckedChange={(checked) =>
+                    updateSettings({ userActivityNotifications: checked })
+                  }
+                />
               </div>
               <div className="flex items-center justify-between">
                 <div>
@@ -129,17 +140,20 @@ export default function SettingsPage() {
                   </Label>
                   <p className="text-sm text-muted-foreground mt-1">Receive notifications about system updates</p>
                 </div>
-                <Switch id="systemNotif" />
+                <Switch
+                  id="systemNotif"
+                  checked={settings.systemNotifications}
+                  onCheckedChange={(checked) =>
+                    updateSettings({ systemNotifications: checked })
+                  }
+                />
               </div>
             </div>
           </Card>
 
-          <div className="flex justify-end">
-            <Button className="gap-2">
-              <Save className="h-4 w-4" />
-              Save Changes
-            </Button>
-          </div>
+          <p className="text-sm text-muted-foreground">
+            Changes apply immediately and are saved to this browser.
+          </p>
         </div>
       </DashboardLayout>
     </ProtectedRoute>

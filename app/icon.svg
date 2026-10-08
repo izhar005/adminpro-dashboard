@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <!--
+    Mirrors components/brand/LogoMark.tsx. Keep the two in step — this file is
+    the favicon and has to match the mark in the header.
+
+    The arrow is drawn twice, each copy clipped to one half by a nested viewport
+    (black half takes white ink, white half takes black), so the stroke stays
+    visible across the seam instead of disappearing on the matching side.
+    A favicon is rendered at 16px, so the stroke is a touch heavier than the
+    header's to survive the downscale.
+  -->
+  <rect width="32" height="32" rx="8" fill="#000000" />
+  <svg x="16" y="0" width="16" height="32" viewBox="16 0 16 32">
+    <rect width="32" height="32" rx="8" fill="#ffffff" />
+  </svg>
+
+  <svg x="0" y="0" width="16" height="32" viewBox="0 0 16 32">
+    <path d="M7 22 L12.5 16.5 L16.5 20 L25 10" fill="none" stroke="#ffffff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M20.5 10 H25 V14.5" fill="none" stroke="#ffffff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
+  </svg>
+  <svg x="16" y="0" width="16" height="32" viewBox="16 0 16 32">
+    <path d="M7 22 L12.5 16.5 L16.5 20 L25 10" fill="none" stroke="#000000" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
+    <path d="M20.5 10 H25 V14.5" fill="none" stroke="#000000" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
+  </svg>
+</svg>

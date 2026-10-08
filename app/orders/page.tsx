@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { DashboardLayout } from "@/components/layout/DashboardLayout"
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute"
 import { OrdersTable } from "@/components/orders/OrdersTable"
@@ -8,49 +8,59 @@ import { OrderDrawer } from "@/components/orders/OrderDrawer"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { mockOrders, type Order } from "@/lib/data"
+import { downloadCsv } from "@/lib/csv"
 import { Search, Filter, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+type StatusFilter = "all" | Order["status"]
+
+const ORDER_STATUSES: Order["status"][] = ["pending", "processing", "completed", "cancelled"]
+
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>(mockOrders)
-  const [filteredOrders, setFilteredOrders] = useState<Order[]>(mockOrders)
+  const orders = mockOrders
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all")
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query)
-    filterOrders(query, statusFilter)
-  }
+  /** Derived, not stored — see the note in `users/page.tsx` for why. */
+  const filteredOrders = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase()
 
-  const handleStatusFilter = (status: string) => {
-    setStatusFilter(status)
-    filterOrders(searchQuery, status)
-  }
+    return orders.filter((order) => {
+      if (statusFilter !== "all" && order.status !== statusFilter) return false
+      if (!query) return true
 
-  const filterOrders = (query: string, status: string) => {
-    let filtered = orders
-
-    if (query) {
-      filtered = filtered.filter(
-        (order) =>
-          order.id.toLowerCase().includes(query.toLowerCase()) ||
-          order.customer.toLowerCase().includes(query.toLowerCase()) ||
-          order.product.toLowerCase().includes(query.toLowerCase()),
+      return (
+        order.id.toLowerCase().includes(query) ||
+        order.customer.toLowerCase().includes(query) ||
+        order.product.toLowerCase().includes(query)
       )
-    }
-
-    if (status !== "all") {
-      filtered = filtered.filter((order) => order.status === status)
-    }
-
-    setFilteredOrders(filtered)
-  }
+    })
+  }, [orders, searchQuery, statusFilter])
 
   const handleViewOrder = (order: Order) => {
     setSelectedOrder(order)
     setDrawerOpen(true)
+  }
+
+  /**
+   * Exports exactly what's on screen, not the full list — a user who filtered to
+   * "Pending" and then hits Export expects the pending rows in the file.
+   */
+  const handleExport = () => {
+    const date = new Date().toISOString().split("T")[0]
+    const scope = statusFilter === "all" ? "all" : statusFilter
+
+    downloadCsv(`orders-${scope}-${date}.csv`, filteredOrders, [
+      { key: "id", header: "Order ID" },
+      { key: "customer", header: "Customer" },
+      { key: "product", header: "Product" },
+      { key: "amount", header: "Amount (cents)" },
+      { key: "status", header: "Status" },
+      { key: "paymentMethod", header: "Payment Method" },
+      { key: "date", header: "Date" },
+    ])
   }
 
   return (
@@ -62,7 +72,7 @@ export default function OrdersPage() {
               <h1 className="text-3xl font-bold mb-2">Orders & Transactions</h1>
               <p className="text-muted-foreground">Track and manage customer orders and payments</p>
             </div>
-            <Button className="gap-2">
+            <Button className="gap-2" onClick={handleExport} disabled={filteredOrders.length === 0}>
               <Download className="h-4 w-4" />
               Export
             </Button>
@@ -75,20 +85,24 @@ export default function OrdersPage() {
                 placeholder="Search by order ID, customer, or product..."
                 className="pl-10"
                 value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Select value={statusFilter} onValueChange={handleStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => setStatusFilter(value as StatusFilter)}
+            >
+              <SelectTrigger className="w-full sm:w-[180px]" aria-label="Filter by order status">
                 <Filter className="mr-2 h-4 w-4" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="processing">Processing</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
+                {ORDER_STATUSES.map((status) => (
+                  <SelectItem key={status} value={status} className="capitalize">
+                    {status}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>

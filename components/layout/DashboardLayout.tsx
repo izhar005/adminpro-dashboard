@@ -1,11 +1,12 @@
 "use client"
 
 import type React from "react"
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Sidebar } from "./Sidebar"
 import { Navbar } from "./Navbar"
 import { useApp } from "@/contexts/AppContext"
 import { cn } from "@/lib/utils"
+import { SIDEBAR_GUTTER_CLASS } from "@/lib/sidebar-layout"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
@@ -14,18 +15,19 @@ interface DashboardLayoutProps {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { settings } = useApp()
   const isCollapsed = settings.sidebarCollapsed
+  const fontSize = settings.fontSize
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [mounted, setMounted] = useState(false)
-
-  // Hydration error se bachne ke liye aur initial load smooth karne ke liye
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) return <div className="min-h-screen bg-background" />
 
   return (
-    <div className="relative min-h-screen bg-background antialiased selection:bg-primary/10">
+    <div
+      className={cn(
+        "relative min-h-screen bg-background antialiased selection:bg-primary/10",
+        // `fontSize` was previously persisted from the settings page but never
+        // applied to anything, so the control did nothing visible.
+        fontSize === "small" && "text-[14px]",
+        fontSize === "large" && "text-[18px]",
+      )}
+    >
       {/* Sidebar - Mobile overlay handles internally */}
       <Sidebar 
         mobileOpen={mobileOpen} 
@@ -35,8 +37,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       <div
         className={cn(
           "transition-[padding] duration-300 ease-in-out min-h-screen",
-          "md:pl-64",
-          isCollapsed && "md:pl-20", // Standard collapsed width
+          // The gutter comes from the same source as the sidebar's width and the
+          // navbar's offset — all three in `lib/sidebar-layout`. They were three
+          // hardcoded numbers in three files, which is how a 16px gap appeared.
+          isCollapsed ? SIDEBAR_GUTTER_CLASS.collapsed : SIDEBAR_GUTTER_CLASS.expanded,
           "will-change-[padding]" // GPU ko batata hai ke padding change hogi
         )}
       >
